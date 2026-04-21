@@ -1,1 +1,1 @@
-# MLDS: A Machine Learning-Driven Ensemble Framework for Synthetic Data Selection
+# MLDS: A Machine Learning-Driven Framework for Ensemble Synthetic Data Selection
