@@ -21,7 +21,7 @@ SynthSelector benchmarks multiple synthetic data generators (SMOTE, CTGAN, TVAE,
 ```bash
 # From source
 git clone https://github.com/omicshub-cu/MLDS.git
-cd synth-selector
+cd MLDS
 pip install -e .
 
 # With boosting classifiers (LightGBM + XGBoost)
