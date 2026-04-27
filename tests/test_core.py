@@ -1,5 +1,7 @@
 """Unit tests for synthselector."""
 
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,33 +14,29 @@ from synthselector.density import preprocess, density_score, rank_by_density, De
 
 # ── fixtures ────────────────────────────────────────────────────────────
 
-
-def _make_binary_data(n: int = 200, seed: int = 42) -> pd.DataFrame:
-    rng = np.random.RandomState(seed)
-    X = rng.randn(n, 5)
+@pytest.fixture()
+def train_df():
+    """Deterministic 200-row binary dataset for testing."""
+    rng = np.random.RandomState(42)
+    n = 200
+    X = rng.randn(n, 4)
     y = (X[:, 0] + X[:, 1] > 0).astype(int)
-    df = pd.DataFrame(X, columns=[f"f{i}" for i in range(5)])
+    df = pd.DataFrame(X, columns=[f"f{i}" for i in range(4)])
     df["label"] = y
     return df
 
 
-@pytest.fixture
-def train_df():
-    return _make_binary_data(200, seed=42)
+@pytest.fixture()
+def synth_df(train_df):
+    """Simple synthetic dataset (copy of train with noise)."""
+    rng = np.random.RandomState(99)
+    df = train_df.copy()
+    feat_cols = [c for c in df.columns if c != "label"]
+    df[feat_cols] += rng.normal(0, 0.1, size=(len(df), len(feat_cols)))
+    return df
 
 
-@pytest.fixture
-def test_df():
-    return _make_binary_data(80, seed=99)
-
-
-@pytest.fixture
-def synth_df():
-    return _make_binary_data(100, seed=7)
-
-
-# ── metrics tests ───────────────────────────────────────────────────────
-
+# ── metrics tests ──────────────────────────────────────────────────────
 
 class TestComputeGmean:
     def test_perfect_binary(self):
@@ -51,12 +49,11 @@ class TestComputeGmean:
         assert compute_gmean(y_true, y_pred) == pytest.approx(0.0)
 
     def test_multiclass(self):
-        y_true = np.array([0, 0, 1, 1, 2, 2])
-        y_pred = np.array([0, 0, 1, 1, 2, 2])
-        assert compute_gmean(y_true, y_pred) == pytest.approx(1.0)
+        y = np.array([0, 1, 2, 0, 1, 2])
+        assert compute_gmean(y, y) == pytest.approx(1.0)
 
 
-class TestClassificationMetrics:
+class TestComputeClassificationMetrics:
     def test_keys(self):
         y_true = np.array([0, 1, 0, 1])
         y_pred = np.array([0, 1, 0, 1])
@@ -73,7 +70,6 @@ class TestClassificationMetrics:
 
 # ── classifiers tests ──────────────────────────────────────────────────
 
-
 class TestGetDefaultClassifiers:
     def test_returns_dict(self):
         models = get_default_classifiers()
@@ -87,10 +83,9 @@ class TestGetDefaultClassifiers:
 
 # ── evaluator tests ─────────────────────────────────────────────────────
 
-
 class TestSyntheticEvaluator:
-    def test_add_and_run(self, train_df, test_df, synth_df):
-        ev = SyntheticEvaluator(train_df, test_df)
+    def test_add_and_run(self, train_df, synth_df):
+        ev = SyntheticEvaluator(train_df)
         ev.add("fake", synth_df)
         result = ev.run()
 
@@ -98,29 +93,37 @@ class TestSyntheticEvaluator:
         summary = result.summary()
         assert "Avg_WeightedScore" in summary.columns
 
-    def test_add_many(self, train_df, test_df, synth_df):
-        ev = SyntheticEvaluator(train_df, test_df)
+    def test_add_many(self, train_df, synth_df):
+        ev = SyntheticEvaluator(train_df)
         ev.add_many({"A": synth_df, "B": synth_df})
         result = ev.run()
-        # Each model should have 2 synthetic entries
         for df in result.model_dfs.values():
             assert len(df) == 2
 
-    def test_no_synthetic_raises(self, train_df, test_df):
-        ev = SyntheticEvaluator(train_df, test_df)
-        with pytest.raises(ValueError, match="No synthetic"):
-            ev.run()
-
-    def test_best_synthetic(self, train_df, test_df, synth_df):
-        ev = SyntheticEvaluator(train_df, test_df)
+    def test_best_synthetic(self, train_df, synth_df):
+        ev = SyntheticEvaluator(train_df)
         ev.add("only", synth_df)
         result = ev.run()
         for model_name in result.model_dfs:
             assert result.best_synthetic(model_name) == "only"
 
-    def test_custom_weights(self, train_df, test_df, synth_df):
+    def test_chaining(self, train_df, synth_df):
+        result = (
+            SyntheticEvaluator(train_df)
+            .add("a", synth_df)
+            .add("b", synth_df)
+            .run()
+        )
+        assert len(result.model_dfs) >= 4
+
+    def test_no_synthetic_raises(self, train_df):
+        ev = SyntheticEvaluator(train_df)
+        with pytest.raises(ValueError, match="No synthetic"):
+            ev.run()
+
+    def test_custom_weights(self, train_df, synth_df):
         ev = SyntheticEvaluator(
-            train_df, test_df,
+            train_df,
             weights={"F1": 1.0, "AUC": 0.0, "GMean": 0.0},
         )
         ev.add("s", synth_df)
@@ -128,9 +131,14 @@ class TestSyntheticEvaluator:
         summary = result.summary()
         assert summary["Avg_WeightedScore"].iloc[0] > 0
 
+    def test_custom_test_size(self, train_df, synth_df):
+        ev = SyntheticEvaluator(train_df, test_size=0.3)
+        ev.add("s", synth_df)
+        result = ev.run()
+        assert len(result.model_dfs) >= 4
+
 
 # ── density tests ───────────────────────────────────────────────────────
-
 
 class TestPreprocess:
     def test_returns_arrays(self, train_df, synth_df):
@@ -148,7 +156,6 @@ class TestDensityScore:
     def test_identical_data_high_score(self, train_df):
         X_real, X_syn = preprocess(train_df, {"copy": train_df})
         scores = density_score(X_real, X_syn, k=5)
-        # Identical data should have a high density score
         assert scores["copy"] > 0
 
     def test_noisy_data_lower_score(self, train_df):
@@ -189,4 +196,3 @@ class TestDensityEvaluator:
         de = DensityEvaluator(train_df)
         with pytest.raises(ValueError, match="No synthetic"):
             de.run()
-

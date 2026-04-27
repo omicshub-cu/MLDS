@@ -1,65 +1,45 @@
-"""
-Example: Evaluate synthetic datasets on the Iris classification task.
+"""Quick-start demo using the Iris dataset.
 
-This script generates dummy "synthetic" data by resampling the real training
-set with noise, then runs the full SynthSelector evaluation pipeline.
-
-Usage:
+Run:
     python examples/quickstart.py
 """
+
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 
 from synthselector import SyntheticEvaluator, DensityEvaluator
 
+# ── load data ────────────────────────────────────────────────────────────
+iris = load_iris()
+df = pd.DataFrame(iris.data, columns=iris.feature_names)
+df["label"] = iris.target
 
-def make_noisy_copy(df: pd.DataFrame, noise: float = 0.1, seed: int = 0) -> pd.DataFrame:
-    """Create a synthetic-like copy by adding Gaussian noise to features."""
-    rng = np.random.RandomState(seed)
-    out = df.copy()
-    feature_cols = [c for c in out.columns if c != "label"]
-    out[feature_cols] += rng.normal(0, noise, size=(len(out), len(feature_cols)))
-    return out
+# ── create fake "synthetic" datasets ─────────────────────────────────────
+rng = np.random.RandomState(0)
 
+clean = df.copy()
+feat_cols = [c for c in df.columns if c != "label"]
+clean[feat_cols] += rng.normal(0, 0.05, size=(len(df), len(feat_cols)))
 
-def main() -> None:
-    # ── load & split ────────────────────────────────────────────────────
-    iris = load_iris(as_frame=True)
-    df = iris.frame.rename(columns={"target": "label"})
-    train, test = train_test_split(df, test_size=0.3, random_state=42, stratify=df["label"])
+noisy = df.copy()
+noisy[feat_cols] += rng.normal(0, 2.0, size=(len(df), len(feat_cols)))
 
-    # ── create fake "synthetic" datasets ────────────────────────────────
-    synthetic_datasets = {
-        "LowNoise": make_noisy_copy(train, noise=0.05, seed=1),
-        "MedNoise": make_noisy_copy(train, noise=0.30, seed=2),
-        "HighNoise": make_noisy_copy(train, noise=1.00, seed=3),
-    }
+# ── classifier-based evaluation ──────────────────────────────────────────
+print("=" * 60)
+print("  CLASSIFIER-BASED EVALUATION")
+print("=" * 60)
+evaluator = SyntheticEvaluator(df)
+evaluator.add("Clean", clean).add("Noisy", noisy)
+result = evaluator.run()
+result.print_report(top_n=2)
 
-    # ── evaluate ────────────────────────────────────────────────────────
-    evaluator = SyntheticEvaluator(train, test)
-    evaluator.add_many(synthetic_datasets)
-    result = evaluator.run()
-
-    # ── report ──────────────────────────────────────────────────────────
-    result.print_report(top_n=3)
-
-    # Programmatic access
-    print("\n--- Programmatic access ---")
-    summary = result.summary()
-    best_model = summary.index[0]
-    best_synth = result.best_synthetic(best_model)
-    print(f"Best model: {best_model}")
-    print(f"Best synthetic for {best_model}: {best_synth}")
-
-    # ── density evaluation (model-free) ─────────────────────────────────
-    print("\n\n>>> Density-based evaluation (model-free) <<<")
-    de = DensityEvaluator(train, k=5)
-    de.add_many(synthetic_datasets)
-    de.print_report()
-
-
-if __name__ == "__main__":
-    main()
+# ── density-based evaluation ─────────────────────────────────────────────
+print("\n\n" + "=" * 60)
+print("  DENSITY-BASED EVALUATION")
+print("=" * 60)
+de = DensityEvaluator(df, k=5)
+de.add_many({"Clean": clean, "Noisy": noisy})
+de.print_report()
