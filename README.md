@@ -20,7 +20,7 @@ SynthSelector benchmarks multiple synthetic data generators (SMOTE, CTGAN, TVAE,
 
 ```bash
 # From source
-git clone https://github.com/yourname/synth-selector.git
+git clone https://github.com/omicshub-cu/MLDS.git
 cd synth-selector
 pip install -e .
 
@@ -122,13 +122,6 @@ evaluator = SyntheticEvaluator(train, test, label_col="target")
 
 ---
 
-## Running Tests
-
-```bash
-pytest
-```
-
----
 
 ## How It Works
 
@@ -143,4 +136,3 @@ pytest
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
