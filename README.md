@@ -71,7 +71,7 @@ synthselector \
 ## Project Structure
 
 ```
-synth-selector/
+MLDS/
 ├── synthselector/
 │   ├── __init__.py          # Public API & version
 │   ├── __main__.py          # CLI entry point
