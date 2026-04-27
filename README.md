@@ -2,7 +2,8 @@
 
 **Evaluate and rank synthetic datasets for ML classification tasks.**
 
-SynthSelector benchmarks multiple synthetic data generators (SMOTE, CTGAN, TVAE, Copula GAN, ForestDiffusion, TabDDPM, STASY, TabSyn, …) by training a panel of classifiers and scoring each dataset on **F1**, **AUC**, and **G-Mean**. The result is a per-model ranking plus an overall summary — so you can pick the best generator for your pipeline in one run.
+MLDS benchmarks multiple synthetic data generators (SMOTE, CTGAN, TVAE, Copula GAN, ForestDiffusion, TabDDPM, STASY, TabSyn, etc) by training a panel of classifiers and scoring each dataset on **F1**, **AUC**, and **G-Mean**. 
+The result is a per-model ranking plus an overall summary so you can pick the best synthetic data (one or more) for your pipeline in one run.
 
 ---
 
