@@ -1,16 +1,18 @@
 # MLDS: A Machine Learning-Driven Framework for Ensemble Synthetic Data Selection
 
-Evaluate and rank synthetic datasets for ML classification tasks.
+**Evaluate and rank synthetic datasets for ML classification tasks.**
+
+SynthSelector benchmarks multiple synthetic data generators (SMOTE, CTGAN, TVAE, Copula GAN, ForestDiffusion, TabDDPM, STASY, TabSyn, …) by training a panel of classifiers and scoring each dataset on **F1**, **AUC**, and **G-Mean**. The result is a per-model ranking plus an overall summary — so you can pick the best generator for your pipeline in one run.
+
+---
 
 ## Features
 
-- **6 classifiers** — SVM, KNN, Decision Tree, Random Forest, LightGBM, XGBoost
-- **3 metrics** — Macro F1, AUC (OVR), G-Mean
-- **Density score** — Model-free manifold coverage metric (KNN-based)
-- **Weighted composite score** — Configurable weights (default 0.4 / 0.3 / 0.3)
-- **Internal train/val split** — Stratified 80/20 split, no separate test set needed
-- **Clean Python API + CLI** — Use as a library or run from the terminal
-- **Binary & multiclass** — Handles any number of classes automatically
+- **Multi-classifier panel** — SVM, KNN, Decision Tree, Random Forest out of the box; LightGBM and XGBoost auto-detected when installed.
+- **Three complementary metrics** — Macro F1, ROC-AUC (binary & multiclass), and Geometric Mean of per-class recalls.
+- **Weighted composite score** — Configurable weights (default 0.4 / 0.3 / 0.3) with min-max normalisation per model.
+- **Clean Python API + CLI** — Use as a library or run straight from the terminal.
+- **Binary & multiclass** — Handles any number of classes automatically.
 
 ---
 
@@ -40,8 +42,9 @@ import pandas as pd
 from synthselector import SyntheticEvaluator
 
 train = pd.read_csv("train.csv")      # must contain a 'label' column
+test  = pd.read_csv("test.csv")
 
-evaluator = SyntheticEvaluator(train)  # splits into train/val internally
+evaluator = SyntheticEvaluator(train, test)
 evaluator.add("SMOTE",  pd.read_csv("smote.csv"))
 evaluator.add("CTGAN",  pd.read_csv("ctgan.csv"))
 evaluator.add("TVAE",   pd.read_csv("tvae.csv"))
@@ -52,22 +55,38 @@ summary = result.summary()        # pandas DataFrame
 best = result.best_synthetic("RF") # best generator for Random Forest
 ```
 
+### Density Score (model-free)
+
+Compare synthetic data quality without training classifiers — measures how
+well synthetic samples cover the real-data manifold:
+
+```python
+from synthselector import DensityEvaluator
+
+de = DensityEvaluator(train, k=5)
+de.add("SMOTE",  pd.read_csv("smote.csv"))
+de.add("CTGAN",  pd.read_csv("ctgan.csv"))
+
+ranking = de.run()       # DataFrame with Rank, Generator, Density_Score
+de.print_report()        # pretty-print to stdout
+```
+
 ### Command Line
 
 ```bash
 synthselector \
   --train train.csv \
+  --test  test.csv \
   --synthetic SMOTE=smote.csv CTGAN=ctgan.csv TVAE=tvae.csv \
   --top-n 3
-```
 
-### With Density Score
+# Add density score comparison alongside classifier evaluation
+synthselector --train train.csv --test test.csv \
+  --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density
 
-```bash
-synthselector \
-  --train train.csv \
-  --synthetic SMOTE=smote.csv CTGAN=ctgan.csv \
-  --density -k 5
+# Density score only (no classifiers, faster)
+synthselector --train train.csv --test test.csv \
+  --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density-only -k 10
 ```
 
 ---
@@ -103,7 +122,7 @@ MLDS/
 from sklearn.linear_model import LogisticRegression
 
 evaluator = SyntheticEvaluator(
-    train,
+    train, test,
     classifiers={
         "LR": LogisticRegression(max_iter=500),
         "RF": RandomForestClassifier(n_estimators=200),
@@ -115,20 +134,23 @@ evaluator = SyntheticEvaluator(
 
 ```python
 evaluator = SyntheticEvaluator(
-    train,
+    train, test,
     weights={"F1": 0.5, "AUC": 0.25, "GMean": 0.25}
 )
 ```
 
-### Custom Label Column & Split
+### Custom Label Column
 
 ```python
-evaluator = SyntheticEvaluator(
-    train,
-    label_col="target",
-    test_size=0.3,        # 70/30 split instead of 80/20
-    random_state=123,
-)
+evaluator = SyntheticEvaluator(train, test, label_col="target")
+```
+
+---
+
+## Running Tests
+
+```bash
+pytest
 ```
 
 ---
@@ -137,13 +159,12 @@ evaluator = SyntheticEvaluator(
 
 ### Classifier-based evaluation (`SyntheticEvaluator`)
 
-1. Split the training data into 80% train / 20% validation (stratified).
-2. For each synthetic dataset, merge it with the train split only.
-3. Train every classifier on the combined data.
-4. Predict on the held-out validation set and compute F1 (macro), AUC (macro-OVR), and G-Mean.
-5. Min-max normalise scores within each classifier.
-6. Compute a weighted composite score.
-7. Rank synthetic datasets per classifier; average across all to find the overall best.
+1. For each synthetic dataset, combine it with the real training data.
+2. Train every classifier on the combined data.
+3. Predict on the held-out test set and compute F1 (macro), AUC (macro-OVR), and G-Mean.
+4. Min-max normalise scores within each classifier.
+5. Compute a weighted composite score.
+6. Rank synthetic datasets per classifier; average across all to find the overall best.
 
 ### Density-based evaluation (`DensityEvaluator`)
 
@@ -159,4 +180,4 @@ Use both methods together to get complementary views: downstream utility (classi
 ---
 
 ## License
-
+Not available yet
