@@ -147,13 +147,6 @@ evaluator = SyntheticEvaluator(train, test, label_col="target")
 
 ---
 
-## Running Tests
-
-```bash
-pytest
-```
-
----
 
 ## How It Works
 
