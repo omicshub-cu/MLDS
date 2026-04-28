@@ -84,9 +84,9 @@ synthselector \
 synthselector --train train.csv --test test.csv \
   --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density
 
-# Density score only (no classifiers, faster)
+# Density score only 
 synthselector --train train.csv --test test.csv \
-  --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density-only -k 10
+  --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density-only -k 5
 ```
 
 ---
