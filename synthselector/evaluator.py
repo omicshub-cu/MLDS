@@ -109,7 +109,14 @@ class SyntheticEvaluator:
     # ── core evaluation ─────────────────────────────────────────────────
 
     def _evaluate_one(self, df_syn: pd.DataFrame) -> dict[str, dict[str, float]]:
-        """Train all classifiers on train+synthetic and return per-model metrics."""
+        """Train all classifiers on train+synthetic and return per-model metrics.
+        
+        PHASE 1: TRAIN & MEASURE
+        - Combine synthetic dataset with real training data
+        - Train all classifiers on the combined set
+        - Predict on held-out test set
+        - Compute F1, AUC, and G-Mean for each classifier
+        """
         combined = pd.concat([self.train, df_syn], ignore_index=True)
         combined = combined.apply(pd.to_numeric, errors="coerce").fillna(0)
 
@@ -189,6 +196,13 @@ class EvaluationResult:
         self._build()
 
     def _build(self) -> None:
+        """Build model DataFrames with normalized metrics and weighted scores.
+        
+        PHASE 2: NORMALISE & SCORE
+        - Min-max normalise each metric within each classifier (scale to 0–1)
+        - Compute weighted composite score per generator (0.4 F1 + 0.3 AUC + 0.3 G-Mean)
+        - Rank synthetic generators per classifier by composite score
+        """
         w_f1 = self.weights.get("F1", 0.4)
         w_auc = self.weights.get("AUC", 0.3)
         w_gmean = self.weights.get("GMean", 0.3)
@@ -236,6 +250,11 @@ class EvaluationResult:
 
     def summary(self) -> pd.DataFrame:
         """Average weighted score per classifier across all synthetic datasets.
+        
+        PHASE 3: AGGREGATE & SELECT
+        - Average composite scores across all classifiers for each generator
+        - Rank generators by their cross-classifier average score
+        - Select the best-performing synthetic dataset (highest average across all classifiers)
 
         Returns
         -------
@@ -259,6 +278,47 @@ class EvaluationResult:
             .sort_values("Avg_WeightedScore", ascending=False)
         )
 
+    def aggregate_rankings(self) -> pd.DataFrame:
+        """Aggregate per-classifier rankings into a cross-model summary.
+        
+        PHASE 3: AGGREGATE & SELECT (Detailed)
+        - Collect ranks per synthetic dataset within each classifier
+        - Compute mean rank (lower is better) across all classifiers
+        - Compute mean weighted score and top-3 frequency
+        - Select top-3 synthetic datasets by mean rank
+
+        Returns
+        -------
+        pd.DataFrame
+            Indexed by synthetic dataset name, columns:
+            - MeanRank: Average rank across classifiers
+            - MeanWeightedScore: Average weighted score across classifiers
+            - TimesTop3: Count of classifiers where this dataset ranked in top-3
+            Sorted by MeanRank (ascending).
+        """
+        # Collect ranks per model
+        rank_records = []
+        for model_name, df in self.model_dfs.items():
+            df_sorted = df.sort_values("WeightedScore", ascending=False)
+            for rank, syn_name in enumerate(df_sorted.index, start=1):
+                rank_records.append({
+                    "Synthetic": syn_name,
+                    "Model": model_name,
+                    "Rank": rank,
+                    "WeightedScore": df_sorted.loc[syn_name, "WeightedScore"],
+                })
+
+        rank_df = pd.DataFrame(rank_records)
+
+        # Aggregate: mean rank and mean weighted score across all classifiers
+        agg = rank_df.groupby("Synthetic").agg(
+            MeanRank=("Rank", "mean"),
+            MeanWeightedScore=("WeightedScore", "mean"),
+            TimesTop3=("Rank", lambda x: (x <= 3).sum()),
+        ).sort_values("MeanRank")
+
+        return agg
+
     # ── display ─────────────────────────────────────────────────────────
 
     def print_report(self, top_n: int = 3) -> None:
@@ -271,27 +331,27 @@ class EvaluationResult:
         """
         medals = ["1st", "2nd", "3rd", "4th", "5th"]
 
-        print("\n" + "=" * 60)
-        print("  TOP SYNTHETIC DATASETS — PER ML MODEL")
-        print("=" * 60)
+        #print("\n" + "=" * 60)
+        #print("  TOP SYNTHETIC DATASETS — PER ML MODEL")
+        #print("=" * 60)
 
-        for model_name, df in self.model_dfs.items():
-            print(f"\n  Model: {model_name}")
-            print("-" * 50)
-            top_df = df[["F1", "AUC", "GMean", "WeightedScore"]].head(top_n)
-            print(top_df.round(4).to_string())
-            for rank, idx in enumerate(df.index[:top_n]):
-                label = medals[rank] if rank < len(medals) else f"{rank+1}th"
-                print(f"    {label}: {idx}")
+        #for model_name, df in self.model_dfs.items():
+        #   print(f"\n  Model: {model_name}")
+        #    print("-" * 50)
+        #    top_df = df[["F1", "AUC", "GMean", "WeightedScore"]].head(top_n)
+        #    print(top_df.round(4).to_string())
+        #    for rank, idx in enumerate(df.index[:top_n]):
+        #        label = medals[rank] if rank < len(medals) else f"{rank+1}th"
+        #        print(f"    {label}: {idx}")
 
-        summary = self.summary()
+        # Synthetic data generators rank top 3
         print("\n" + "=" * 60)
-        print("  SUMMARY — AVERAGE WEIGHTED SCORE PER ML MODEL")
+        print("SYNTHETIC DATA GENERAOTRS RANK")
         print("=" * 60)
-        print(summary.round(4).to_string())
-        best = summary.index[0]
-        best_score = summary["Avg_WeightedScore"].iloc[0]
-        print(f"\n  Best overall ML model: {best}  (Avg WeightedScore = {best_score:.4f})")
+        agg = self.aggregate_rankings()
+        print(agg.round(4).to_string())
+        top_3_synthetic = agg.index[:3].tolist()
+        print(f"\n  ✅ Selected top-3 synthetic datasets: {top_3_synthetic}")
 
     def __repr__(self) -> str:  # pragma: no cover
         n_models = len(self.model_dfs)
