@@ -1,0 +1,28 @@
+Collecting numpy
+  Obtaining dependency information for numpy from https://files.pythonhosted.org/packages/c5/31/7fc6239c12bce7e931463251cca4426c465e1876ba3cc785402ef4dd8f4e/numpy-2.4.6-cp311-cp311-win_amd64.whl.metadata
+  Downloading numpy-2.4.6-cp311-cp311-win_amd64.whl.metadata (6.6 kB)
+Collecting pandas
+  Obtaining dependency information for pandas from https://files.pythonhosted.org/packages/ec/b8/f5f6caf9a6c643296a92e88922c53e9932101e00403517c45ca3704b47ab/pandas-3.0.4-cp311-cp311-win_amd64.whl.metadata
+  Downloading pandas-3.0.4-cp311-cp311-win_amd64.whl.metadata (19 kB)
+Collecting scikit-learn
+  Obtaining dependency information for scikit-learn from https://files.pythonhosted.org/packages/3b/67/be3d369f40d8178ba3bd86635d132e08cb5329b023e4669d9426d84bc007/scikit_learn-1.9.0-cp311-cp311-win_amd64.whl.metadata
+  Downloading scikit_learn-1.9.0-cp311-cp311-win_amd64.whl.metadata (11 kB)
+Requirement already satisfied: python-dateutil>=2.8.2 in c:\users\mahay\anaconda3\lib\site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: tzdata in c:\users\mahay\anaconda3\lib\site-packages (from pandas) (2023.3)
+Requirement already satisfied: scipy>=1.10.0 in c:\users\mahay\anaconda3\lib\site-packages (from scikit-learn) (1.11.1)
+Requirement already satisfied: joblib>=1.4.0 in c:\users\mahay\appdata\roaming\python\python311\site-packages (from scikit-learn) (1.4.0)
+Requirement already satisfied: narwhals>=2.0.1 in c:\users\mahay\anaconda3\lib\site-packages (from scikit-learn) (2.15.0)
+Requirement already satisfied: threadpoolctl>=3.5.0 in c:\users\mahay\appdata\roaming\python\python311\site-packages (from scikit-learn) (3.5.0)
+Requirement already satisfied: six>=1.5 in c:\users\mahay\anaconda3\lib\site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+Collecting numpy
+  Obtaining dependency information for numpy from https://files.pythonhosted.org/packages/3f/6b/5610004206cf7f8e7ad91c5a85a8c71b2f2f8051a0c0c4d5916b76d6cbb2/numpy-1.26.4-cp311-cp311-win_amd64.whl.metadata
+  Downloading numpy-1.26.4-cp311-cp311-win_amd64.whl.metadata (61 kB)
+     -------------------------------------- 61.0/61.0 kB 651.3 kB/s eta 0:00:00
+Downloading pandas-3.0.4-cp311-cp311-win_amd64.whl (9.9 MB)
+   ---------------------------------------- 9.9/9.9 MB 2.2 MB/s eta 0:00:00
+Downloading scikit_learn-1.9.0-cp311-cp311-win_amd64.whl (8.3 MB)
+   ---------------------------------------- 8.3/8.3 MB 1.6 MB/s eta 0:00:00
+Downloading numpy-1.26.4-cp311-cp311-win_amd64.whl (15.8 MB)
+   ---------------------------------------- 15.8/15.8 MB 2.1 MB/s eta 0:00:00
+Installing collected packages: numpy, pandas, scikit-learn
+Successfully installed numpy-1.26.4 pandas-3.0.4 scikit-learn-1.9.0

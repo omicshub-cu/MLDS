@@ -8,12 +8,15 @@ Usage:
     python examples/quickstart.py
 """
 
+import sys
+sys.path.insert(0, '.')  # Add current folder to path
+
+from synthselector import SyntheticEvaluator
+
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-
-from synthselector import SyntheticEvaluator, DensityEvaluator
 
 
 def make_noisy_copy(df: pd.DataFrame, noise: float = 0.1, seed: int = 0) -> pd.DataFrame:
@@ -54,11 +57,6 @@ def main() -> None:
     print(f"Best model: {best_model}")
     print(f"Best synthetic for {best_model}: {best_synth}")
 
-    # ── density evaluation (model-free) ─────────────────────────────────
-    print("\n\n>>> Density-based evaluation (model-free) <<<")
-    de = DensityEvaluator(train, k=5)
-    de.add_many(synthetic_datasets)
-    de.print_report()
 
 
 if __name__ == "__main__":
