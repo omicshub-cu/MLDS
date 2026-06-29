@@ -74,18 +74,18 @@ de.print_report()        # pretty-print to stdout
 ### Command Line
 
 ```bash
-synthselector \
+python -m synthselector \
   --train train.csv \
   --test  test.csv \
   --synthetic SMOTE=smote.csv CTGAN=ctgan.csv TVAE=tvae.csv \
   --top-n 3
 
 # Add density score comparison alongside classifier evaluation
-synthselector --train train.csv --test test.csv \
+python -m synthselector --train train.csv --test test.csv \
   --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density
 
 # Density score only 
-synthselector --train train.csv --test test.csv \
+python -m synthselector --train train.csv --test test.csv \
   --synthetic SMOTE=smote.csv CTGAN=ctgan.csv --density-only -k 5
 ```
 
