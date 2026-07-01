@@ -116,6 +116,37 @@ MLDS/
 
 ## Configuration
 
+### Balanced Union Sampling
+
+```python
+from synthselector.balanced_union_sampling import balanced_union_sampling
+
+# your top-k generators from Phase 3, each as a DataFrame of synthetic
+# minority-class samples (same columns as your real data)
+synthetic_pools = {
+    "TabDDPM": synthetic_tabddpm_df,
+    "ForestDiff": synthetic_forestdiff_df,
+    "TVAE": synthetic_tvae_df,
+}
+
+result = balanced_union_sampling(
+    real_minority=real_minority_df,
+    synthetic_pools=synthetic_pools,
+    n_majority=len(real_majority_df),
+    random_state=42,   # for reproducibility
+)
+
+# this is what you feed into classifier training
+balanced_minority_df = result.augmented_minority
+
+# combine with majority class for the full training set
+training_set = pd.concat([real_majority_df, balanced_minority_df], ignore_index=True)
+
+
+print(result.allocation)            # actual samples drawn per generator
+print(result.requested_quota)       # what the equal quota would have been
+print(result.shortfall_redistributed)  # how much got redistributed due to capping
+```
 ### Custom Classifiers
 
 ```python
