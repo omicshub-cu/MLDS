@@ -116,37 +116,6 @@ MLDS/
 
 ## Configuration
 
-### Balanced Union Sampling
-
-```python
-from synthselector.balanced_union_sampling import balanced_union_sampling
-
-# your top-k generators from Phase 3, each as a DataFrame of synthetic
-# minority-class samples (same columns as your real data)
-synthetic_pools = {
-    "TabDDPM": synthetic_tabddpm_df,
-    "ForestDiff": synthetic_forestdiff_df,
-    "TVAE": synthetic_tvae_df,
-}
-
-result = balanced_union_sampling(
-    real_minority=real_minority_df,
-    synthetic_pools=synthetic_pools,
-    n_majority=len(real_majority_df),
-    random_state=42,   # for reproducibility
-)
-
-# this is what you feed into classifier training
-balanced_minority_df = result.augmented_minority
-
-# combine with majority class for the full training set
-training_set = pd.concat([real_majority_df, balanced_minority_df], ignore_index=True)
-
-
-print(result.allocation)            # actual samples drawn per generator
-print(result.requested_quota)       # what the equal quota would have been
-print(result.shortfall_redistributed)  # how much got redistributed due to capping
-```
 ### Custom Classifiers
 
 ```python
@@ -202,6 +171,73 @@ Higher density → synthetic data concentrates in high-density real regions.
 Use both methods together to get complementary views: downstream utility (classifiers) vs. distributional fidelity (density).
 
 ---
+
+## Balanced Union Sampling
+
+**Balanced Union Sampling** is the procedure `synthselector` uses to balance
+the minority class against the majority class once the top-*k* synthetic
+generators have been selected.
+
+### How it works
+
+1. **Compute the budget.** Determine how many synthetic samples are needed
+   to bring the minority class up to the majority class count:
+   `budget = n_majority − n_real_minority`.
+2. **Pool the synthetic output.** Combine the synthetic minority samples
+   from each of the top-*k* generators into a single union, keeping track
+   of which generator produced each sample.
+3. **Set an equal quota per generator.** Divide the budget evenly across
+   the *k* generators: `quota = budget // k`.
+4. **Cap and redistribute.** If a generator's available synthetic samples
+   fall short of its quota, allocate everything it has and redistribute
+   the shortfall to generators that still have spare capacity.
+5. **Sample randomly within each generator's allocation.** For each
+   generator, randomly draw its allocated number of samples from its own
+   pool, without replacement.
+6. **Combine.** Merge the sampled synthetic points from all generators,
+   then append them to the (unmodified) real minority samples to form the
+   final balanced minority set.
+
+The result is a minority-class training set that (a) matches the majority
+class in size, (b) draws roughly evenly from each of the top-*k*
+generators regardless of how large each generator's raw output pool was,
+and (c) preserves all real minority samples unchanged.
+
+### Why "union" instead of a single generator
+
+Different generators have different inductive biases (e.g. GAN-based vs.
+diffusion-based vs. tree-based methods), so each tends to cover different
+regions of the real minority class's feature space. Pooling multiple
+generators' output, rather than using just the top-ranked one, improves
+coverage of the minority distribution as a result, provided the pooling
+step (Balanced Union Sampling) controls for uneven per-generator pool
+sizes.
+
+### Usage
+
+```python
+from synthselector.balanced_union_sampling import balanced_union_sampling
+
+result = balanced_union_sampling(
+    real_minority=real_minority_df,
+    synthetic_pools={
+        "TabDDPM": synthetic_tabddpm_df,
+        "ForestDiff": synthetic_forestdiff_df,
+        "TVAE": synthetic_tvae_df,
+    },
+    n_majority=len(real_majority_df),
+    random_state=42,
+)
+
+balanced_minority_df = result.augmented_minority
+```
+
+See `result.allocation` for the actual number of samples drawn per
+generator, and `result.requested_quota` for what an even split would have
+looked like before capping/redistribution — useful for reporting
+per-generator contribution in write-ups or sanity-checking that no single
+generator dominates the augmented set.
+
 
 ## License
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
