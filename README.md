@@ -8,11 +8,11 @@ SynthSelector benchmarks multiple synthetic data generators by training a panel 
 
 ## Features
 
-- **Multi-classifier panel** — SVM, KNN, Decision Tree, Random Forest out of the box; LightGBM and XGBoost auto-detected when installed.
-- **Three complementary metrics** — Macro F1, ROC-AUC (binary & multiclass), and Geometric Mean of per-class recalls.
-- **Weighted composite score** — Configurable weights (default 0.4 / 0.3 / 0.3) with min-max normalisation per model.
-- **Clean Python API + CLI** — Use as a library or run straight from the terminal.
-- **Binary & multiclass** — Handles any number of classes automatically.
+- **Multi-classifier panel** - SVM, KNN, Decision Tree, Random Forest out of the box; LightGBM and XGBoost auto-detected when installed.
+- **Three complementary metrics** - F1-Score, ROC-AUC, and G-Mean.
+- **Weighted composite score** - Configurable weights (default 0.4 / 0.3 / 0.3) with min-max normalisation per model.
+- **Clean Python API + CLI** - Use as a library or run straight from the terminal.
+- **Binary & multiclass** - Handles any number of classes automatically.
 
 ---
 
