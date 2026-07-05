@@ -102,11 +102,14 @@ MLDS/
 │   ├── density.py           # Density score (model-free manifold coverage)
 │   ├── evaluator.py         # SyntheticEvaluator + EvaluationResult
 │   └── metrics.py           # G-Mean, F1, AUC utilities
+├── data/
+│   └── t2d/                 # data example from type 2 diabetes dataset (original and synthetic)
 ├── tests/
 │   └── test_core.py         # Unit tests
 ├── examples/
-│   └── quickstart.py        # End-to-end demo on Iris
-├── pyproject.toml            # PEP 621 packaging + tool configs
+│   ├── quickstart.py        # End-to-end demo on Iris
+│   └── test.py              
+├── pyproject.toml           # PEP 621 packaging + tool configs
 ├── requirements.txt
 ├── LICENSE
 └── README.md
